@@ -1,0 +1,10 @@
+# Временные файлы Microsoft Word/Office
+~$*
+*.tmp
+
+# Системные файлы Windows/macOS
+Thumbs.db
+.DS_Store
+
+# Логи и временные файлы
+*.log
