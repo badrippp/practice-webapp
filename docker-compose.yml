@@ -1,6 +1,24 @@
+# =========================================================================
+#  Единый файл запуска всей инфраструктуры практики одной командой:
+#
+#      docker compose up -d
+#
+#  Поднимает:
+#    - webapp    — веб-страница задания (Nginx)      -> порт 80
+#    - gitlab    — GitLab CE (репозиторий, история)   -> порт 8929 (веб), 2222 (SSH)
+#    - portainer — управление контейнерами (GUI)       -> порт 9443
+#    - dockhand  — альтернатива Portainer (GUI)         -> порт 3000
+#
+#  ВАЖНО: перед запуском замените 192.168.31.46 на актуальный локальный IP
+#  этого компьютера (посмотреть: ipconfig -> "IPv4-адрес" адаптера Wi-Fi).
+#  Именно по этому IP к серверу будут подключаться другие устройства
+#  (например, MacBook) в локальной сети.
+# =========================================================================
+
 version: "3.9"
 
 services:
+
   webapp:
     build:
       context: .
@@ -10,3 +28,47 @@ services:
     ports:
       - "80:80"
     restart: unless-stopped
+
+  gitlab:
+    image: gitlab/gitlab-ce:latest
+    container_name: gitlab
+    hostname: 192.168.31.46          # <-- замените на свой локальный IP
+    restart: unless-stopped
+    shm_size: "256m"
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'http://192.168.31.46:8929'   # <-- и здесь тоже
+    ports:
+      - "8929:8929"   # веб-интерфейс GitLab (порт совпадает с external_url!)
+      - "2222:22"     # SSH для git-операций по ssh (опционально)
+    volumes:
+      - gitlab_config:/etc/gitlab
+      - gitlab_logs:/var/log/gitlab
+      - gitlab_data:/var/opt/gitlab
+
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    restart: unless-stopped
+    ports:
+      - "9443:9443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+
+  dockhand:
+    image: fnsys/dockhand:latest
+    container_name: dockhand
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - dockhand_data:/app/data
+
+volumes:
+  gitlab_config:
+  gitlab_logs:
+  gitlab_data:
+  portainer_data:
+  dockhand_data:
