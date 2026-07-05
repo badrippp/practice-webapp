@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dota 2 Progress Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div class="ambient ambient--left"></div>
+  <div class="ambient ambient--right"></div>
+
+  <header class="topbar">
+    <div class="topbar__inner">
+      <div class="brand">
+        <div class="brand__icon">D2</div>
+        <div>
+          <h1>Progress Tracker</h1>
+          <p>Dota 2 · Dotabuff · AI Insights</p>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section class="panel panel--search">
+      <label for="player-input">Steam ID, ссылка или ник игрока</label>
+      <div class="search-bar">
+        <input id="player-input" type="text" placeholder="86745912" autocomplete="off" />
+        <button id="search-btn" class="btn btn--accent">Анализировать</button>
+      </div>
+      <div id="search-suggestions" class="suggestions hidden"></div>
+    </section>
+
+    <div id="loading" class="state state--loading hidden">
+      <div class="loader"></div>
+      <div>
+        <strong id="loading-title">Загрузка данных...</strong>
+        <p id="loading-sub">Анализ 100 матчей, пати и меты</p>
+      </div>
+    </div>
+
+    <div id="error" class="state state--error hidden"></div>
+
+    <div id="dashboard" class="dashboard hidden">
+      <section class="panel panel--profile">
+        <img id="player-avatar" class="profile-avatar" alt="" />
+        <div class="profile-main">
+          <h2 id="player-name">—</h2>
+          <div class="chip-row">
+            <span id="player-rank" class="chip chip--gold">—</span>
+            <span id="player-mmr" class="chip chip--blue">—</span>
+            <span id="player-wl" class="chip">—</span>
+          </div>
+          <div class="profile-actions">
+            <a id="dotabuff-link" class="btn btn--dotabuff" href="#" target="_blank" rel="noopener">Dotabuff профиль</a>
+            <button id="save-snapshot-btn" class="btn btn--ghost">Сохранить MMR</button>
+            <span id="snapshot-status" class="muted"></span>
+          </div>
+        </div>
+        <div class="profile-stats">
+          <div class="mini-stat"><span>WR 20</span><strong id="stat-last20">—</strong></div>
+          <div class="mini-stat"><span>WR 100</span><strong id="stat-overall">—</strong></div>
+          <div class="mini-stat"><span>Серия</span><strong id="stat-streak">—</strong></div>
+          <div class="mini-stat"><span>Матчей</span><strong id="stat-matches">—</strong></div>
+        </div>
+      </section>
+
+      <nav class="tabs" id="tabs">
+        <button class="tab active" data-tab="overview">Обзор</button>
+        <button class="tab" data-tab="matches">Матчи</button>
+        <button class="tab" data-tab="heroes">Герои</button>
+        <button class="tab" data-tab="predictions">AI Прогноз</button>
+        <button class="tab" data-tab="party">Пати</button>
+        <button class="tab" data-tab="meta">Мета</button>
+      </nav>
+
+      <section class="tab-panel active" data-panel="overview">
+        <div class="grid-2">
+          <article class="panel">
+            <h3>Динамика Win Rate</h3>
+            <canvas id="winrate-chart"></canvas>
+          </article>
+          <article class="panel">
+            <h3>История MMR</h3>
+            <canvas id="mmr-chart"></canvas>
+            <p id="mmr-empty" class="muted hidden">Сохраняйте снимки MMR для графика</p>
+          </article>
+        </div>
+        <article class="panel panel--summary" id="ai-summary"></article>
+      </section>
+
+      <section class="tab-panel" data-panel="matches">
+        <article class="panel">
+          <div class="panel-head">
+            <h3>Последние 100 матчей</h3>
+            <span class="muted">С иконками героев и тиммейтами</span>
+          </div>
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Результат</th>
+                  <th>Герой</th>
+                  <th>Роль</th>
+                  <th>K/D/A</th>
+                  <th>Тиммейты</th>
+                  <th>Время</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="matches-body"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
+      <section class="tab-panel" data-panel="heroes">
+        <article class="panel">
+          <div class="panel-head">
+            <h3>Win Rate по героям</h3>
+          </div>
+          <div id="heroes-grid" class="heroes-grid"></div>
+        </article>
+      </section>
+
+      <section class="tab-panel" data-panel="predictions">
+        <div class="grid-2">
+          <article class="panel">
+            <div class="panel-head"><h3>Рекомендуемая роль</h3></div>
+            <div id="role-recommendation" class="prediction-hero"></div>
+            <div id="roles-list" class="roles-list"></div>
+          </article>
+          <article class="panel">
+            <div class="panel-head"><h3>Лучшие пики (100 игр)</h3></div>
+            <div id="hero-picks" class="pick-list"></div>
+          </article>
+        </div>
+        <article class="panel">
+          <div class="panel-head"><h3>Избегать</h3></div>
+          <div id="hero-avoid" class="pick-list pick-list--avoid"></div>
+        </article>
+      </section>
+
+      <section class="tab-panel" data-panel="party">
+        <div class="grid-2">
+          <article class="panel">
+            <div class="panel-head"><h3>Играть вместе</h3><span class="chip chip--green">High WR</span></div>
+            <div id="party-good" class="party-list"></div>
+          </article>
+          <article class="panel">
+            <div class="panel-head"><h3>Избегать в пати</h3><span class="chip chip--red">Low WR</span></div>
+            <div id="party-bad" class="party-list"></div>
+          </article>
+        </div>
+        <article class="panel">
+          <div class="panel-head"><h3>Тиммейты из последних матчей</h3></div>
+          <div id="recent-teammates" class="party-list"></div>
+        </article>
+      </section>
+
+      <section class="tab-panel" data-panel="meta">
+        <article class="panel">
+          <div class="panel-head">
+            <h3>Мета героев</h3>
+            <span id="meta-source" class="muted">Dota2ProTracker style</span>
+          </div>
+          <div class="meta-filters">
+            <button class="filter-btn active" data-tier="all">Все</button>
+            <button class="filter-btn" data-tier="S">S Tier</button>
+            <button class="filter-btn" data-tier="A">A Tier</button>
+            <button class="filter-btn" data-tier="B">B Tier</button>
+          </div>
+          <div class="meta-filters meta-filters--rank">
+            <button class="rank-btn active" data-rank="all">All</button>
+            <button class="rank-btn" data-rank="immortal">Immortal</button>
+            <button class="rank-btn" data-rank="divine">Divine</button>
+            <button class="rank-btn" data-rank="ancient">Ancient</button>
+            <button class="rank-btn" data-rank="legend">Legend</button>
+          </div>
+          <div class="table-scroll">
+            <table class="data-table meta-table">
+              <thead>
+                <tr>
+                  <th>Tier</th>
+                  <th>Герой</th>
+                  <th>Роль</th>
+                  <th>Win Rate</th>
+                  <th>Pick Rate</th>
+                  <th>Ban Rate</th>
+                  <th>Pro Pick</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="meta-body"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <p>Неофициальное приложение · OpenDota + Dotabuff · AI-модель на Wilson score</p>
+  </footer>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
