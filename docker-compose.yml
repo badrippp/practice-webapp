@@ -1,0 +1,12 @@
+version: "3.9"
+
+services:
+  webapp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: practice-webapp:latest
+    container_name: practice_webapp
+    ports:
+      - "80:80"
+    restart: unless-stopped
